@@ -93,6 +93,14 @@ typedef struct KernelParams {
 #define RING_FUN(x,y,z)      (NU2*(x)+NU*((y)+(z)))
 
 
+__constant int tmat[4][3] = {{0,1,2}, {1,2,0}, {0,2,1}, {0,1,2}};
+
+float4 transform(float4 *v, int index) {
+	uint4 mask = (uint4)(tmat[index][0], tmat[index][1], tmat[index][2], 3);
+	float4 r = shuffle(*v, mask);
+	return r;
+}
+
 void logistic_step(__private RandType *t, __private RandType *tnew, int len_1){
     t[0]=FUN(t[0]);
     t[1]=FUN(t[1]);
@@ -472,16 +480,12 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 			    continue;
 			}
 			tmp0=n1/prop.z;
-                	if(flipdir>=3.f) { //transmit through z plane
-                	   v.xy=tmp0*v.xy;
-			   v.z=sqrt(1.f - v.y*v.y - v.x*v.x);
-                	}else if(flipdir>=2.f){ //transmit through y plane
-                	   v.xz=tmp0*v.xz;
-			   v.y=sqrt(1.f - v.x*v.x - v.z*v.z);
-                	}else if(flipdir>=1.f){ //transmit through x plane
-                	   v.yz=tmp0*v.yz;
-			   v.x=sqrt(1.f - v.y*v.y - v.z*v.z);
-                	}
+			int index = (flipdir>=1.0f) + (flipdir>=2.0f) +  (flipdir>=3.0f);
+			int on = (index > 0);
+			float4 r = transform(&v, index);
+			r.xy = tmp0 * r.xy;
+			r.z  = sqrt(1.f - r.x * r.x - r.y * r.y); 
+			v = r *(on^0x00) + v * (on^0x01);
 		  }else{ //do reflection
                 	if(flipdir>=3.f) { //flip in z axis
                 	   v.z=-v.z;
