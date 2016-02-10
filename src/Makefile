@@ -36,6 +36,7 @@ endif
 
 ifdef AMDAPPSDKROOT
   INCLUDEDIRS +=-I$(AMDAPPSDKROOT)/include
+  LINKOPT += -L$(AMDAPPSDKROOT)/lib/x86_64
 endif
   
 all logfast:CUCCOPT+=
