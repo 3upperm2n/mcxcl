@@ -23,7 +23,7 @@ MAKE       := make
 ECHO       := echo
 MKDIR      := mkdir
 
-FILES=mcx_host mcx_utils tictoc mcextreme
+FILES=mcx_host mcx_utils tictoc mcxcl
 
 ARCH = $(shell uname -m)
 PLATFORM = $(shell uname -o)
@@ -61,13 +61,13 @@ makedirs:
 	@if test ! -d $(OUTPUT_DIR); then $(MKDIR) $(OUTPUT_DIR); fi
 
 $(OUTPUT_DIR)/$(BINARY): makedirs $(OBJS)
-	$(CCC) $(OBJS) $(LINKOPT) -o $(OUTPUT_DIR)/$(BINARY)
+	$(CCC) $(OBJS) $(LINKOPT) -o $(OUTPUT_DIR)/$(BINARY) -lpthread
 
 %$(OBJSUFFIX): %.c
-	$(CCC) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
+	$(CCC) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $< -lpthread
 
 %$(OBJSUFFIX): %.cpp
-	$(CUDACC) $(INCLUDEDIRS) $(CPPOPT) -c $(CUCCOPT) -o $@  $<
+	$(CUDACC) $(INCLUDEDIRS) $(CPPOPT) -c $(CUCCOPT) -o $@  $< -lpthread
 
 clean:
 	-rm -f $(OBJS) $(OUTPUT_DIR)/$(BINARY)$(EXESUFFIX) $(OUTPUT_DIR)/$(BINARY)_atomic$(EXESUFFIX)
