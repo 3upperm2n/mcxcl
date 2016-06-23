@@ -259,6 +259,9 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
          OCL_ASSERT(((mcxqueue[i]=clCreateCommandQueue(mcxcontext,devices[i],prop,&status),status)));
          OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_MAX_COMPUTE_UNITS,sizeof(cl_uint),(void*)(cucount+i),NULL)));
          OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_NAME,100,(void*)&pbuf,NULL)));
+
+        printf("=> device : %s\n", pbuf);
+
          if(strstr(pbuf,"ATI")){
             cucount[i]*=(80/5); // an ati core typically has 80 SP, and 80/5=16 VLIW
 	 }else if(strstr(pbuf,"GeForce") || strstr(pbuf,"Quadro") || strstr(pbuf,"Tesla")){
@@ -402,6 +405,10 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],10, sizeof(cl_mem), (void*)(gdetected+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],11, cfg->issavedet? sizeof(cl_float)*cfg->nblocksize*param.maxmedia : 1, NULL)));
      }
+
+    printf("local memory size : %ld\n", cfg->issavedet? sizeof(cl_float)*cfg->nblocksize*param.maxmedia : sizeof(float));
+
+
      fprintf(cfg->flog,"set kernel arguments complete : %d ms\n",GetTimeMillis()-tic);
 
      if(cfg->exportfield==NULL)

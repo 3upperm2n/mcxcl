@@ -1,0 +1,3 @@
+device_name         max_waves_per_SIMD          CU_num          SIMD_per_CU     Block_Size          Threads_to_launch
+tahiti                      3                    32                 4               64                  24576 
+fiji                        3                   64                  4               64                  49152
