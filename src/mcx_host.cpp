@@ -353,7 +353,10 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 
      OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
-     sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+     //sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+     //sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
+
+
      if(cfg->issavedet)
          sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
      if(cfg->isreflect)
