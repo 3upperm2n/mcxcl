@@ -259,6 +259,9 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
          OCL_ASSERT(((mcxqueue[i]=clCreateCommandQueue(mcxcontext,devices[i],prop,&status),status)));
          OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_MAX_COMPUTE_UNITS,sizeof(cl_uint),(void*)(cucount+i),NULL)));
          OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_NAME,100,(void*)&pbuf,NULL)));
+
+        printf("=> device : %s\n", pbuf);
+
          if(strstr(pbuf,"ATI")){
             cucount[i]*=(80/5); // an ati core typically has 80 SP, and 80/5=16 VLIW
 	 }else if(strstr(pbuf,"GeForce") || strstr(pbuf,"Quadro") || strstr(pbuf,"Tesla")){
@@ -354,6 +357,8 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
      OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
      sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+     //sprintf(opt+strlen(opt)," -cl-denorms-are-zero -cl-finite-math-only -DSIZE=128");
+
      if(cfg->issavedet)
          sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
      if(cfg->isreflect)

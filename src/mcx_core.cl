@@ -170,6 +170,7 @@ void xorshift128p_seed (__global uint seed[4],RandType t[RAND_BUF_LEN])
 void gpu_rng_init(__private RandType t[RAND_BUF_LEN], __global uint *n_seed, int idx){
     xorshift128p_seed((n_seed+idx*RAND_SEED_LEN),t);
 }
+
 void gpu_rng_reseed(__private RandType t[RAND_BUF_LEN],__global uint cpuseed[],uint idx,float reseed){
 }
 
@@ -189,7 +190,7 @@ float rand_next_scatlen(__private RandType t[RAND_BUF_LEN]){
 // OpenCL float atomicadd hack:
 // http://suhorukov.blogspot.co.uk/2011/12/opencl-11-atomic-operations-on-floating.html
 
-inline void atomicadd(volatile __global float *source, const float operand) {
+void atomicadd(volatile __global float *source, const float operand) {
     union {
         unsigned int intVal;
         float floatVal;
@@ -243,7 +244,7 @@ void savedetphoton(__global float n_det[],__global uint *detectedphoton,float ns
 }
 #endif
 
-float mcx_nextafterf(float a, int dir){
+inline float mcx_nextafterf(float a, int dir){
       union{
           float f;
 	  uint  i;
@@ -253,7 +254,7 @@ float mcx_nextafterf(float a, int dir){
       return num.f-1000.f;
 }
 
-float hitgrid(float4 p0[], float4 v[], float4 htime[], int *id){
+inline float hitgrid(float4 p0[], float4 v[], float4 htime[], int *id){
       float dist;
 
       //time-of-flight to hit the wall in each direction
@@ -266,6 +267,22 @@ float hitgrid(float4 p0[], float4 v[], float4 htime[], int *id){
       (*id)=(dist==htime[0].x?0:(dist==htime[0].y?1:2));
 
       htime[0]=p0[0]+(float4)(dist)*v[0];
+
+
+      /*
+      switch(*id) {
+        case 0:
+            htime[0].x=mcx_nextafterf(convert_int_rte(htime[0].x), (v[0].x > 0.f)-(v[0].x < 0.f));
+            break;
+        case 1:
+            htime[0].y=mcx_nextafterf(convert_int_rte(htime[0].y), (v[0].y > 0.f)-(v[0].y < 0.f));
+            break;
+        default:
+            htime[0].z=mcx_nextafterf(convert_int_rte(htime[0].z), (v[0].z > 0.f)-(v[0].z < 0.f));
+            break;
+      }
+      */
+
 
       (*id==0) ?
           (htime[0].x=mcx_nextafterf(convert_int_rte(htime[0].x), (v[0].x > 0.f)-(v[0].x < 0.f))) :
@@ -292,7 +309,7 @@ void rotatevector(float4 v[], float stheta, float ctheta, float sphi, float cphi
       GPUDEBUG(((__constant char*)"new dir: %10.5e %10.5e %10.5e\n",v[0].x,v[0].y,v[0].z));
 }
 
-int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
+inline int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
            uint *mediaid,float *w0,uchar isdet, __local float ppath[],float *energyloss,float *energylaunched,
 	   __global float n_det[],__global uint *dpnum, __constant float4 gproperty[],
 	   __constant float4 gdetpos[],__constant MCXParam gcfg[],int threadid, int threadphoton, int oddphotons){
@@ -312,6 +329,7 @@ int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
 
       if(f[0].w>=(threadphoton+(threadid<oddphotons)))
          return 1; // all photons complete 
+
       p[0]=gcfg->ps;
       v[0]=gcfg->c0;
       f[0]=(float4)(0.f,0.f,gcfg->minaccumtime,f[0].w+1);
@@ -322,6 +340,7 @@ int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
       *w0=p[0].w;
       return 0;
 }
+
 
 /*
    this is the core Monte Carlo simulation kernel, please see Fig. 1 in Fang2009
@@ -389,9 +408,15 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
                        //Biomedical Diagnostics",2002,Chap3,p234, also see Boas2002
 
                        if(prop.z>EPS){  //if prop.z is too small, the distribution of theta is bad
-		           tmp0=(1.f-prop.z*prop.z)/(1.f-prop.z+2.f*prop.z*rand_next_zangle(t));
-		           tmp0*=tmp0;
-		           tmp0=(1.f+prop.z*prop.z-tmp0)/(2.f*prop.z);
+		           //tmp0=(1.f-prop.z*prop.z)/(1.f-prop.z+2.f*prop.z*rand_next_zangle(t));
+		           //tmp0*=tmp0;
+		           //tmp0=(1.f+prop.z*prop.z-tmp0)/(2.f*prop.z);
+
+			   float tmp2 = prop.z * prop.z;
+			   tmp1 = prop.z + prop.z;
+
+		           tmp0=(1.f - tmp2)/(1.f - prop.z + tmp1 * rand_next_zangle(t));
+		           tmp0=(1.f+ tmp2-tmp0 * tmp0)/ tmp1;
 
                            // when ran=1, CUDA will give me 1.000002 for tmp0 which produces nan later
                            // detected by Ocelot,thanks to Greg Diamos,see http://bit.ly/cR2NMP
@@ -401,7 +426,9 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 		           stheta=sin(theta);
 		           ctheta=tmp0;
                        }else{
-			   theta=acos(2.f*rand_next_zangle(t)-1.f);
+			   //theta=acos(2.f*rand_next_zangle(t)-1.f);
+			   float tmp3 = rand_next_zangle(t);
+			   theta=acos(tmp3 + tmp3 -1.f);
                            stheta=sincos(theta,&ctheta);
                        }
                        GPUDEBUG(((__constant char*)"scat theta=%f\n",theta));
@@ -421,6 +448,7 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
           GPUDEBUG(((__constant char*)"p=[%f %f %f] -> <%f %f %f>*%f -> hit=[%f %f %f] flip=%d\n",p.x,p.y,p.z,v.x,v.y,v.z,f.z,htime.x,htime.y,htime.z,flipdir));
 
 	  p.xyz = (slen==f.x) ? p.xyz+(float3)(f.z)*v.xyz : htime.xyz;
+
 	  p.w*=exp(-prop.x*f.z);
 	  f.x-=slen;
 	  f.y+=f.z*prop.w*gcfg->oneoverc0;
@@ -490,16 +518,30 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
                   sphi=1.f-cphi*cphi;            // sin(si)^2
 
                   f.z=1.f-tmp0/tmp1*sphi;   //1-[n1/n2*sin(si)]^2
+
 	          GPUDEBUG(((__constant char*)"ref total ref=%f\n",f.z));
 
                   if(f.z>0.f) {
-                     ctheta=tmp0*cphi*cphi+tmp1*f.z;
-                     stheta=2.f*n1*prop.w*cphi*sqrt(f.z);
+
+		  	float tmp2 = cphi * cphi;
+                     //ctheta=tmp0*cphi*cphi+tmp1*f.z;
+                     ctheta=tmp0*tmp2 +tmp1*f.z;
+
+                     //stheta=2.f*n1*prop.w*cphi*sqrt(f.z);
+                     stheta=n1*prop.w*cphi*sqrt(f.z);
+                     stheta+=stheta;
+
+
                      Rtotal=(ctheta-stheta)/(ctheta+stheta);
-       	       	     ctheta=tmp1*cphi*cphi+tmp0*f.z;
+
+       	       	     //ctheta=tmp1*cphi*cphi+tmp0*f.z;
+       	       	     ctheta=tmp1*tmp2+tmp0*f.z;
+
        	       	     Rtotal=(Rtotal+(ctheta-stheta)/(ctheta+stheta))*0.5f;
+
 		     GPUDEBUG(((__constant char*)"Rtotal=%f\n",Rtotal));
                   }
+
 	          if(Rtotal<1.f && rand_next_reflect(t)>Rtotal){ // do transmission
                         if(mediaid==0){ // transmission to external boundary
                             GPUDEBUG(((__constant char*)"transmit to air, relaunch\n"));
@@ -510,7 +552,11 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 			    continue;
 			}
 	                GPUDEBUG(((__constant char*)"do transmission\n"));
-			tmp0=n1/prop.w;
+
+			//tmp0=n1/prop.w;
+			tmp0=half_divide(n1, prop.w);
+
+			
                 	if(flipdir==2) { //transmit through z plane
                 	   v.xy=tmp0*v.xy;
 			   v.z=sqrt(1.f - v.y*v.y - v.x*v.x);
@@ -521,6 +567,11 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
                 	   v.yz=tmp0*v.yz;
 			   v.x=sqrt(1.f - v.y*v.y - v.z*v.z);
                 	}
+			//update_v_ptr[flipdir](&v, tmp0);
+
+
+
+
 		  }else{ //do reflection
 	                GPUDEBUG(((__constant char*)"do reflection\n"));
 	                GPUDEBUG(((__constant char*)"ref faceid=%d p=[%f %f %f] v_old=[%f %f %f]\n",flipdir,p.x,p.y,p.z,v.x,v.y,v.z));
