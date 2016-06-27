@@ -254,18 +254,21 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
      cl_command_queue_properties prop = CL_QUEUE_PROFILING_ENABLE;
 
      totalcucore=0;
-     for(i=0;i<workdev;i++){
-         char pbuf[100]={'\0'};
-         OCL_ASSERT(((mcxqueue[i]=clCreateCommandQueue(mcxcontext,devices[i],prop,&status),status)));
-         OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_MAX_COMPUTE_UNITS,sizeof(cl_uint),(void*)(cucount+i),NULL)));
-         OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_NAME,100,(void*)&pbuf,NULL)));
-         if(strstr(pbuf,"ATI")){
-            cucount[i]*=(80/5); // an ati core typically has 80 SP, and 80/5=16 VLIW
-	 }else if(strstr(pbuf,"GeForce") || strstr(pbuf,"Quadro") || strstr(pbuf,"Tesla")){
-            cucount[i]*=8;  // an nvidia MP typically has 8 SP
-         }
-         totalcucore+=cucount[i];
-     }
+	 for(i=0;i<workdev;i++){
+		 char pbuf[100]={'\0'};
+		 OCL_ASSERT(((mcxqueue[i]=clCreateCommandQueue(mcxcontext,devices[i],prop,&status),status)));
+		 OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_MAX_COMPUTE_UNITS,sizeof(cl_uint),(void*)(cucount+i),NULL)));
+		 OCL_ASSERT((clGetDeviceInfo(devices[i],CL_DEVICE_NAME,100,(void*)&pbuf,NULL)));
+
+		 printf("=> device %d: %s\n", i, pbuf);
+
+		 if(strstr(pbuf,"ATI")){
+			 cucount[i]*=(80/5); // an ati core typically has 80 SP, and 80/5=16 VLIW
+		 }else if(strstr(pbuf,"GeForce") || strstr(pbuf,"Quadro") || strstr(pbuf,"Tesla")){
+			 cucount[i]*=8;  // an nvidia MP typically has 8 SP
+		 }
+		 totalcucore+=cucount[i];
+	 }
      fullload=0.f;
      for(i=0;i<workdev;i++)
      	fullload+=cfg->workload[i];

@@ -370,175 +370,176 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
          return;
      }
 
-     while(f.w<=nphoton + (idx<ophoton)) {
+	 while(f.w<=nphoton + (idx<ophoton)) {
 
-          GPUDEBUG(((__constant char*)"photonid [%d] L=%f w=%e medium=%d\n",(int)f.w,f.x,p.w,mediaid));
+		 GPUDEBUG(((__constant char*)"photonid [%d] L=%f w=%e medium=%d\n",(int)f.w,f.x,p.w,mediaid));
 
-	  if(f.x<=0.f) {  // if this photon has finished the current jump
-   	       f.x=rand_next_scatlen(t);
+		 if(f.x<=0.f) {  // if this photon has finished the current jump
+			 f.x=rand_next_scatlen(t);
 
-               GPUDEBUG(((__constant char*)"scat L=%f RNG=[%e %e %e] \n",f.x,rand_next_aangle(t),rand_next_zangle(t),rand_uniform01(t)));
+			 GPUDEBUG(((__constant char*)"scat L=%f RNG=[%e %e %e] \n",f.x,rand_next_aangle(t),rand_next_zangle(t),rand_uniform01(t)));
 
-	       if(p.w<1.f){ //weight
-                       //random arimuthal angle
-                       tmp0=TWO_PI*rand_next_aangle(t); //next arimuth angle
-                       sphi=sincos(tmp0,&cphi);
-                       GPUDEBUG(((__constant char*)"scat phi=%f\n",tmp0));
+			 if(p.w<1.f){ //weight
+				 //random arimuthal angle
+				 tmp0=TWO_PI*rand_next_aangle(t); //next arimuth angle
+				 sphi=sincos(tmp0,&cphi);
+				 GPUDEBUG(((__constant char*)"scat phi=%f\n",tmp0));
 
-                       //Henyey-Greenstein Phase Function, "Handbook of Optical 
-                       //Biomedical Diagnostics",2002,Chap3,p234, also see Boas2002
+				 //Henyey-Greenstein Phase Function, "Handbook of Optical 
+				 //Biomedical Diagnostics",2002,Chap3,p234, also see Boas2002
 
-                       if(prop.z>EPS){  //if prop.z is too small, the distribution of theta is bad
-		           tmp0=(1.f-prop.z*prop.z)/(1.f-prop.z+2.f*prop.z*rand_next_zangle(t));
-		           tmp0*=tmp0;
-		           tmp0=(1.f+prop.z*prop.z-tmp0)/(2.f*prop.z);
+				 if(prop.z>EPS){  //if prop.z is too small, the distribution of theta is bad
+					 tmp0=(1.f-prop.z*prop.z)/(1.f-prop.z+2.f*prop.z*rand_next_zangle(t));
+					 tmp0*=tmp0;
+					 tmp0=(1.f+prop.z*prop.z-tmp0)/(2.f*prop.z);
 
-                           // when ran=1, CUDA will give me 1.000002 for tmp0 which produces nan later
-                           // detected by Ocelot,thanks to Greg Diamos,see http://bit.ly/cR2NMP
-                           tmp0=max(-1.f, min(1.f, tmp0));
+					 // when ran=1, CUDA will give me 1.000002 for tmp0 which produces nan later
+					 // detected by Ocelot,thanks to Greg Diamos,see http://bit.ly/cR2NMP
+					 tmp0=max(-1.f, min(1.f, tmp0));
 
-		           theta=acos(tmp0);
-		           stheta=sin(theta);
-		           ctheta=tmp0;
-                       }else{
-			   theta=acos(2.f*rand_next_zangle(t)-1.f);
-                           stheta=sincos(theta,&ctheta);
-                       }
-                       GPUDEBUG(((__constant char*)"scat theta=%f\n",theta));
-                       rotatevector(&v,stheta,ctheta,sphi,cphi);
-                       v.w+=1.f;
-	       }
-	  }
+					 theta=acos(tmp0);
+					 stheta=sin(theta);
+					 ctheta=tmp0;
+				 }else{
+					 theta=acos(2.f*rand_next_zangle(t)-1.f);
+					 stheta=sincos(theta,&ctheta);
+				 }
+				 GPUDEBUG(((__constant char*)"scat theta=%f\n",theta));
+				 rotatevector(&v,stheta,ctheta,sphi,cphi);
+				 v.w+=1.f;
+			 }
+		 }
 
-	  n1=prop.w;
-	  prop=gproperty[mediaid & MED_MASK];
-	  
-	  f.z=hitgrid(&p, &v, &htime, &flipdir);
-	  slen=f.z*prop.y;
-	  slen=fmin(slen,f.x);
-	  f.z=slen/prop.y;
+		 n1=prop.w;
+		 prop=gproperty[mediaid & MED_MASK];
 
-          GPUDEBUG(((__constant char*)"p=[%f %f %f] -> <%f %f %f>*%f -> hit=[%f %f %f] flip=%d\n",p.x,p.y,p.z,v.x,v.y,v.z,f.z,htime.x,htime.y,htime.z,flipdir));
+		 f.z=hitgrid(&p, &v, &htime, &flipdir);
+		 slen=f.z*prop.y;
+		 slen=fmin(slen,f.x);
+		 f.z=slen/prop.y;
 
-	  p.xyz = (slen==f.x) ? p.xyz+(float3)(f.z)*v.xyz : htime.xyz;
-	  p.w*=exp(-prop.x*f.z);
-	  f.x-=slen;
-	  f.y+=f.z*prop.w*gcfg->oneoverc0;
+		 GPUDEBUG(((__constant char*)"p=[%f %f %f] -> <%f %f %f>*%f -> hit=[%f %f %f] flip=%d\n",p.x,p.y,p.z,v.x,v.y,v.z,f.z,htime.x,htime.y,htime.z,flipdir));
 
-          GPUDEBUG(((__constant char*)"update p=[%f %f %f] -> f.z=%f\n",p.x,p.y,p.z,f.z));
+		 p.xyz = (slen==f.x) ? p.xyz+(float3)(f.z)*v.xyz : htime.xyz;
+		 p.w*=exp(-prop.x*f.z);
+		 f.x-=slen;
+		 f.y+=f.z*prop.w*gcfg->oneoverc0;
+
+		 GPUDEBUG(((__constant char*)"update p=[%f %f %f] -> f.z=%f\n",p.x,p.y,p.z,f.z));
 
 #ifdef MCX_SAVE_DETECTORS
-          if(gcfg->savedet)
-	      ppath[(mediaid & MED_MASK)-1]+=f.z; //(unit=grid)
+		 if(gcfg->savedet)
+			 ppath[(mediaid & MED_MASK)-1]+=f.z; //(unit=grid)
 #endif
 
-          mediaidold=mediaid | isdet;
-          idx1dold=idx1d;
-          idx1d=((int)floor(p.z)*gcfg->dimlen.y+(int)floor(p.y)*gcfg->dimlen.x+(int)floor(p.x));
-          GPUDEBUG(((__constant char*)"idx1d [%d]->[%d]\n",idx1dold,idx1d));
-          if(any(isless(p.xyz,(float3)(0.f))) || any(isgreater(p.xyz,(gcfg->maxidx.xyz)))){
-	      mediaid=0;	
-	  }else{
-              mediaid=media[idx1d];
-              isdet=mediaid & DET_MASK;
-              mediaid &= MED_MASK;
-          }
-          GPUDEBUG(((__constant char*)"medium [%d]->[%d]\n",mediaidold,mediaid));
+		 mediaidold=mediaid | isdet;
+		 idx1dold=idx1d;
+		 idx1d=((int)floor(p.z)*gcfg->dimlen.y+(int)floor(p.y)*gcfg->dimlen.x+(int)floor(p.x));
+		 GPUDEBUG(((__constant char*)"idx1d [%d]->[%d]\n",idx1dold,idx1d));
+		 if(any(isless(p.xyz,(float3)(0.f))) || any(isgreater(p.xyz,(gcfg->maxidx.xyz)))){
+			 mediaid=0;	
+		 }else{
+			 mediaid=media[idx1d];
+			 isdet=mediaid & DET_MASK;
+			 mediaid &= MED_MASK;
+		 }
+		 GPUDEBUG(((__constant char*)"medium [%d]->[%d]\n",mediaidold,mediaid));
 
-	  if(idx1d!=idx1dold && idx1dold>0 && mediaidold){
-             GPUDEBUG(((__constant char*)"field add to %d->%f(%d)\n",idx1dold,w0-p.w,(int)f.w));
-             // if t is within the time window, which spans cfg->maxgate*cfg->tstep wide
-             if(gcfg->save2pt && f.y>=gcfg->twin0 && f.y<gcfg->twin1){
-                  GPUDEBUG(((__constant char*)"deposit to [%d] %e, w=%f\n",idx1dold,w0-p.w,p.w));
+		 if(idx1d!=idx1dold && idx1dold>0 && mediaidold){
+			 GPUDEBUG(((__constant char*)"field add to %d->%f(%d)\n",idx1dold,w0-p.w,(int)f.w));
+			 // if t is within the time window, which spans cfg->maxgate*cfg->tstep wide
+			 if(gcfg->save2pt && f.y>=gcfg->twin0 && f.y<gcfg->twin1){
+				 GPUDEBUG(((__constant char*)"deposit to [%d] %e, w=%f\n",idx1dold,w0-p.w,p.w));
 #ifndef USE_ATOMIC
-                  // set gcfg->skipradius2 to only start depositing energy when dist^2>gcfg->skipradius2 
-                  if(gcfg->skipradius2>EPS){
-                      if((p.x-gcfg->ps.x)*(p.x-gcfg->ps.x)+(p.y-gcfg->ps.y)*(p.y-gcfg->ps.y)+(p.z-gcfg->ps.z)*(p.z-gcfg->ps.z)>gcfg->skipradius2){
-                          field[idx1dold+(int)(floor((f.y-gcfg->twin0)*gcfg->Rtstep))*gcfg->dimlen.z]+=w0-p.w;
-                      }else{
-                          accumweight+=p.w*prop.x; // weight*absorption
-                      }
-                  }else{
-                      field[idx1dold+(int)(floor((f.y-gcfg->twin0)*gcfg->Rtstep))*gcfg->dimlen.z]+=w0-p.w;
-                  }
+				 // set gcfg->skipradius2 to only start depositing energy when dist^2>gcfg->skipradius2 
+				 if(gcfg->skipradius2>EPS){
+					 if((p.x-gcfg->ps.x)*(p.x-gcfg->ps.x)+(p.y-gcfg->ps.y)*(p.y-gcfg->ps.y)+(p.z-gcfg->ps.z)*(p.z-gcfg->ps.z)>gcfg->skipradius2){
+						 field[idx1dold+(int)(floor((f.y-gcfg->twin0)*gcfg->Rtstep))*gcfg->dimlen.z]+=w0-p.w;
+					 }else{
+						 accumweight+=p.w*prop.x; // weight*absorption
+					 }
+				 }else{
+					 field[idx1dold+(int)(floor((f.y-gcfg->twin0)*gcfg->Rtstep))*gcfg->dimlen.z]+=w0-p.w;
+				 }
 #else
-		  atomicadd(& field[idx1dold+(int)(floor((f.y-gcfg->twin0)*gcfg->Rtstep))*gcfg->dimlen.z], w0-p.w);
-                  GPUDEBUG(((__constant char*)"atomic write to [%d] %e, w=%f\n",idx1dold,weight,p.w));
+				 atomicadd(& field[idx1dold+(int)(floor((f.y-gcfg->twin0)*gcfg->Rtstep))*gcfg->dimlen.z], w0-p.w);
+				 GPUDEBUG(((__constant char*)"atomic write to [%d] %e, w=%f\n",idx1dold,weight,p.w));
 #endif
-	     }
-	     w0=p.w;
-	  }
+			 }
+			 w0=p.w;
+		 }
 
-          if((mediaid==0 && (!gcfg->doreflect || (gcfg->doreflect && n1==gproperty[mediaid].w))) || f.y>gcfg->twin1){
-                  GPUDEBUG(((__constant char*)"direct relaunch at idx=[%d] mediaid=[%d], ref=[%d]\n",idx1d,mediaid,gcfg->doreflect));
-		  if(launchnewphoton(&p,&v,&f,&prop,&idx1d,&mediaid,&w0,(mediaidold & DET_MASK),ppath,
-		      &energyloss,&energylaunched,n_det,detectedphoton,gproperty,gdetpos,gcfg,idx,nphoton,ophoton)){ 
-                         break;
-		  }
-                  continue;
-          }
+		 if((mediaid==0 && (!gcfg->doreflect || (gcfg->doreflect && n1==gproperty[mediaid].w))) || f.y>gcfg->twin1){
+			 GPUDEBUG(((__constant char*)"direct relaunch at idx=[%d] mediaid=[%d], ref=[%d]\n",idx1d,mediaid,gcfg->doreflect));
+			 if(launchnewphoton(&p,&v,&f,&prop,&idx1d,&mediaid,&w0,(mediaidold & DET_MASK),ppath,
+						 &energyloss,&energylaunched,n_det,detectedphoton,gproperty,gdetpos,gcfg,idx,nphoton,ophoton)){ 
+				 break;
+			 }
+			 continue;
+		 }
 #ifdef MCX_DO_REFLECTION
-          //if hit the boundary, exceed the max time window or exit the domain, rebound or launch a new one
-          if(gcfg->doreflect && n1!=gproperty[mediaid].w){
-	          float Rtotal=1.f;
+		 //if hit the boundary, exceed the max time window or exit the domain, rebound or launch a new one
+		 if(gcfg->doreflect && n1!=gproperty[mediaid].w){
+			 float Rtotal=1.f;
 
-                  *((float4*)(&prop))=gproperty[mediaid]; // optical property across the interface
+			 *((float4*)(&prop))=gproperty[mediaid]; // optical property across the interface
 
-                  tmp0=n1*n1;
-                  tmp1=prop.w*prop.w;
-                  cphi=fabs( (flipdir==0) ? v.x : (flipdir==1 ? v.y : v.z)); // cos(si)
-                  sphi=1.f-cphi*cphi;            // sin(si)^2
+			 tmp0=n1*n1;
+			 tmp1=prop.w*prop.w;
+			 cphi=fabs( (flipdir==0) ? v.x : (flipdir==1 ? v.y : v.z)); // cos(si)
+			 sphi=1.f-cphi*cphi;            // sin(si)^2
 
-                  f.z=1.f-tmp0/tmp1*sphi;   //1-[n1/n2*sin(si)]^2
-	          GPUDEBUG(((__constant char*)"ref total ref=%f\n",f.z));
+			 f.z=1.f-tmp0/tmp1*sphi;   //1-[n1/n2*sin(si)]^2
+			 GPUDEBUG(((__constant char*)"ref total ref=%f\n",f.z));
 
-                  if(f.z>0.f) {
-                     ctheta=tmp0*cphi*cphi+tmp1*f.z;
-                     stheta=2.f*n1*prop.w*cphi*sqrt(f.z);
-                     Rtotal=(ctheta-stheta)/(ctheta+stheta);
-       	       	     ctheta=tmp1*cphi*cphi+tmp0*f.z;
-       	       	     Rtotal=(Rtotal+(ctheta-stheta)/(ctheta+stheta))*0.5f;
-		     GPUDEBUG(((__constant char*)"Rtotal=%f\n",Rtotal));
-                  }
-	          if(Rtotal<1.f && rand_next_reflect(t)>Rtotal){ // do transmission
-                        if(mediaid==0){ // transmission to external boundary
-                            GPUDEBUG(((__constant char*)"transmit to air, relaunch\n"));
-		    	    if(launchnewphoton(&p,&v,&f,&prop,&idx1d,&mediaid,&w0,(mediaidold & DET_MASK),
-			        ppath,&energyloss,&energylaunched,n_det,detectedphoton,gproperty,gdetpos,gcfg,idx,nphoton,ophoton)){
-                                    break;
-			    }
-			    continue;
-			}
-	                GPUDEBUG(((__constant char*)"do transmission\n"));
-			tmp0=n1/prop.w;
-                	if(flipdir==2) { //transmit through z plane
-                	   v.xy=tmp0*v.xy;
-			   v.z=sqrt(1.f - v.y*v.y - v.x*v.x);
-                	}else if(flipdir==1){ //transmit through y plane
-                	   v.xz=tmp0*v.xz;
-			   v.y=sqrt(1.f - v.x*v.x - v.z*v.z);
-                	}else if(flipdir==0){ //transmit through x plane
-                	   v.yz=tmp0*v.yz;
-			   v.x=sqrt(1.f - v.y*v.y - v.z*v.z);
-                	}
-		  }else{ //do reflection
-	                GPUDEBUG(((__constant char*)"do reflection\n"));
-	                GPUDEBUG(((__constant char*)"ref faceid=%d p=[%f %f %f] v_old=[%f %f %f]\n",flipdir,p.x,p.y,p.z,v.x,v.y,v.z));
-                	(flipdir==0) ? (v.x=-v.x) : ((flipdir==1) ? (v.y=-v.y) : (v.z=-v.z)) ;
-			(flipdir==0) ?
-        		    (p.x=nextafter(convert_int_rte(p.x), p.x+(v.x > 0.f)-0.5f)) :
-			    ((flipdir==1) ? 
-				(p.y=nextafter(convert_int_rte(p.y), p.y+(v.y > 0.f)-0.5f)) :
-				(p.z=nextafter(convert_int_rte(p.z), p.z+(v.z > 0.f)-0.5f)) );
-	                GPUDEBUG(((__constant char*)"ref p_new=[%f %f %f] v_new=[%f %f %f]\n",p.x,p.y,p.z,v.x,v.y,v.z));
-                	idx1d=idx1dold;
-		 	mediaid=(media[idx1d] & MED_MASK);
-			prop=gproperty[mediaid];
-			n1=prop.w;
-		  }
-              }
+			 if(f.z>0.f){
+				 ctheta=tmp0*cphi*cphi+tmp1*f.z;
+				 stheta=2.f*n1*prop.w*cphi*sqrt(f.z);
+				 Rtotal=(ctheta-stheta)/(ctheta+stheta);
+				 ctheta=tmp1*cphi*cphi+tmp0*f.z;
+				 Rtotal=(Rtotal+(ctheta-stheta)/(ctheta+stheta))*0.5f;
+				 GPUDEBUG(((__constant char*)"Rtotal=%f\n",Rtotal));
+			 }
+
+			 if(Rtotal<1.f && rand_next_reflect(t)>Rtotal){ // do transmission
+				 if(mediaid==0){ // transmission to external boundary
+					 GPUDEBUG(((__constant char*)"transmit to air, relaunch\n"));
+					 if(launchnewphoton(&p,&v,&f,&prop,&idx1d,&mediaid,&w0,(mediaidold & DET_MASK),
+								 ppath,&energyloss,&energylaunched,n_det,detectedphoton,gproperty,gdetpos,gcfg,idx,nphoton,ophoton)){
+						 break;
+					 }
+					 continue;
+				 }
+				 GPUDEBUG(((__constant char*)"do transmission\n"));
+				 tmp0=n1/prop.w;
+				 if(flipdir==2) { //transmit through z plane
+					 v.xy=tmp0*v.xy;
+					 v.z=sqrt(1.f - v.y*v.y - v.x*v.x);
+				 }else if(flipdir==1){ //transmit through y plane
+					 v.xz=tmp0*v.xz;
+					 v.y=sqrt(1.f - v.x*v.x - v.z*v.z);
+				 }else if(flipdir==0){ //transmit through x plane
+					 v.yz=tmp0*v.yz;
+					 v.x=sqrt(1.f - v.y*v.y - v.z*v.z);
+				 }
+			 }else{ //do reflection
+				 GPUDEBUG(((__constant char*)"do reflection\n"));
+				 GPUDEBUG(((__constant char*)"ref faceid=%d p=[%f %f %f] v_old=[%f %f %f]\n",flipdir,p.x,p.y,p.z,v.x,v.y,v.z));
+				 (flipdir==0) ? (v.x=-v.x) : ((flipdir==1) ? (v.y=-v.y) : (v.z=-v.z)) ;
+				 (flipdir==0) ?
+					 (p.x=nextafter(convert_int_rte(p.x), p.x+(v.x > 0.f)-0.5f)) :
+					 ((flipdir==1) ? 
+					  (p.y=nextafter(convert_int_rte(p.y), p.y+(v.y > 0.f)-0.5f)) :
+					  (p.z=nextafter(convert_int_rte(p.z), p.z+(v.z > 0.f)-0.5f)) );
+				 GPUDEBUG(((__constant char*)"ref p_new=[%f %f %f] v_new=[%f %f %f]\n",p.x,p.y,p.z,v.x,v.y,v.z));
+				 idx1d=idx1dold;
+				 mediaid=(media[idx1d] & MED_MASK);
+				 prop=gproperty[mediaid];
+				 n1=prop.w;
+			 }
+		 }
 #endif
-     }
+	 }
      // accumweight saves the total absorbed energy in the sphere r<sradius.
      // in non-atomic mode, accumweight is more accurate than saving to the grid
      // as it is not influenced by race conditions.
