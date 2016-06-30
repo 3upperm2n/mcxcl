@@ -9,9 +9,11 @@ CCC=g++
 BINARY=mcxcl
 OUTPUT_DIR=../bin
 INCLUDEDIRS=#-I/home/fangq/Download/ati-stream-sdk-v2.0-lnx32/include
+
+CUDAROOT?=/usr/local/cuda
+
 AMDAPPSDKROOT ?=/opt/AMDAPPSDK-2.9-1
 LIBOPENCLDIR ?=$(AMDAPPSDKROOT)/lib/x86_64
-LINKOPT=-g -L$(LIBOPENCLDIR) -lOpenCL
 
 CUCCOPT=-I/usr/local/cuda/include #-m32 -msse2 -Wfloat-equal -Wpointer-arith  -DATI_OS_LINUX -g3 -ffor-scope 
 CPPOPT=-g -pedantic -Wall -O3 -DMCX_OPENCL -DUSE_OS_TIMER -I/usr/local/cuda/include #-O3
@@ -38,6 +40,11 @@ endif
 
 ifdef AMDAPPSDKROOT
   INCLUDEDIRS +=-I$(AMDAPPSDKROOT)/include
+  LINKOPT=-g -L$(LIBOPENCLDIR) -lOpenCL
+endif
+
+ifdef CUDAROOT
+  LINKOPT=-g -L/usr/local/cuda/targets/x86_64-linux/lib/ -lOpenCL
 endif
   
 all logfast:CUCCOPT+=
