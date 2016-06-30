@@ -45,6 +45,7 @@ endif
 
 ifdef CUDAROOT
   LINKOPT=-g -L/usr/local/cuda/targets/x86_64-linux/lib/ -lOpenCL
+  #LINKOPT=-g -L/usr/local/cuda-7.0/targets/x86_64-linux/lib/ -lOpenCL
 endif
   
 all logfast:CUCCOPT+=
