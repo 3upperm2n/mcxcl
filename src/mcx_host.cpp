@@ -246,21 +246,16 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 	cl_uint2 cachebox;
 	cl_uint4 dimlen;
 
-	//cl_context mcxcontext;                 // compute mcxcontext
+	cl_context *mcxcontext;
 	cl_command_queue *mcxqueue;          // compute command queue
-	//cl_program mcxprogram;                 // compute mcxprogram
+	cl_program *mcxprogram;                 // compute mcxprogram
 	cl_kernel *mcxkernel;                   // compute mcxkernel
 
-	// start pthread
-	cl_context *mcxcontext;
-	cl_program *mcxprogram;                 // compute mcxprogram
-	cl_mem *gmedia, *gproperty, *gparam;
 
 	pthread_t threads[NUM_THREADS];
 	pthread_attr_t attr;
 	int rc;
 	void *pstatus;
-	// end pthread
 
 
 	cl_int status = 0;
@@ -270,7 +265,9 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
 	cl_uint *cucount,totalcucore;
 	cl_uint  devid=0;
+
 	//cl_mem gmedia,gproperty,gparam;
+	cl_mem *gmedia, *gproperty, *gparam;
 	cl_mem *gfield,*gdetphoton,*gseed,*genergy;
 	cl_mem *gstopsign,*gdetected,*gdetpos;
 
@@ -733,13 +730,13 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 		clReleaseMemObject(gstopsign[i]);
 		clReleaseMemObject(gdetected[i]);
 		clReleaseMemObject(gdetpos[i]);
-		clReleaseKernel(mcxkernel[i]);
 
 		clReleaseMemObject(gmedia[i]);
 		clReleaseMemObject(gproperty[i]);
 		clReleaseMemObject(gparam[i]);
 
 	}
+
 	free(gfield);
 	free(gseed);
 	free(genergy);
@@ -749,13 +746,13 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
 	free(waittoread);
 
-	for(devid=0;devid<workdev;devid++)
+	for(cl_uint devid=0;devid<workdev;devid++)
 	{
 		clReleaseKernel(mcxkernel[devid]);
 		clReleaseCommandQueue(mcxqueue[devid]);
 	}
 
-	free(mcxkernel);
+	//free(mcxkernel);
 	free(mcxqueue);
 
 	//clReleaseProgram(mcxprogram);
