@@ -10,7 +10,10 @@ BINARY=mcxcl
 OUTPUT_DIR=../bin
 INCLUDEDIRS=#-I/home/fangq/Download/ati-stream-sdk-v2.0-lnx32/include
 
-CUDAROOT?=/usr/local/cuda
+CUDA_DIR=/usr/local/cuda
+ifneq "$(wildcard $(CUDA_DIR) )" ""
+  CUDAROOT?=$(CUDA_DIR)
+endif
 
 AMDAPPSDKROOT ?=/opt/AMDAPPSDK-2.9-1
 LIBOPENCLDIR ?=$(AMDAPPSDKROOT)/lib/x86_64
