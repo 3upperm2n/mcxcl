@@ -355,7 +355,7 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
      OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
      sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
-     sprintf(opt+strlen(opt)," -cl-single-precision-constant -cl-denorms-are-zero -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-fast-relaxed-math");
+     //sprintf(opt+strlen(opt)," -cl-single-precision-constant -cl-denorms-are-zero -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-fast-relaxed-math");
 
 
      if(cfg->issavedet)
