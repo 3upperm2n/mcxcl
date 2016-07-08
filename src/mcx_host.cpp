@@ -403,6 +403,7 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 8, sizeof(cl_mem), (void*)(gdetpos+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 9, sizeof(cl_mem), (void*)(gstopsign+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],10, sizeof(cl_mem), (void*)(gdetected+i))));
+	 //printf("local memory : %lu\n",cfg->issavedet? sizeof(cl_float)*cfg->nblocksize*param.maxmedia : 1);
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],11, cfg->issavedet? sizeof(cl_float)*cfg->nblocksize*param.maxmedia : 1, NULL)));
      }
      fprintf(cfg->flog,"set kernel arguments complete : %d ms\n",GetTimeMillis()-tic);
