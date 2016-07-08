@@ -376,6 +376,50 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 		 ap=mcx_nextafterf(a,1);
 		 an=mcx_nextafterf(a,-1);
 		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - my nextafter\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+
+
+		 // built-in
+
+		 printf("\nopencl nextafter\n");
+
+		 a=10.0f;
+		 ap=nextafter(a,a+1.f);
+		 an=nextafter(a,a-1.f);
+		 printf("     float       hex        float+       next+       float-       next-\n");
+		 printf("\n\n%12.5f %08X %15.8e %08X %15.8e %08X - math lib\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+	 
+		 *((unsigned int *)&a)=0x3F800000;
+		 ap=nextafter(a,a+1.f);
+		 an=nextafter(a,a-1.f);
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - math lib\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=0.f;
+		 ap=nextafter(a,a+1.f);
+		 an=nextafter(a,a-1.f);
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - math lib\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=-10.f;
+		 ap=nextafter(a,a+1.f);
+		 an=nextafter(a,a-1.f);
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - math lib\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=-10.f;
+		 ap=nextafter(a+1000.f,a+1001.f)-1000.f;
+		 an=nextafter(a+1000.f,a-1001.f)-1000.f;
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - math lib+offset\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=10.f;
+		 ap=nextafter(a+1000.f,a+1001.f)-1000.f;
+		 an=nextafter(a+1000.f,a-1001.f)-1000.f;
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - math lib+offset\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=-10.f;
+		 ap=nextafter(a,1);
+		 an=nextafter(a,-1);
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - my nextafter\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=0.f;
+		 ap=nextafter(a,1);
+		 an=nextafter(a,-1);
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - my nextafter\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
+		 a=10.f;
+		 ap=nextafter(a,1);
+		 an=nextafter(a,-1);
+		 printf("%12.5f %08X %15.8e %08X %15.8e %08X - my nextafter\n", a, *(unsigned int*)&a, ap, *(unsigned int*)&ap, an, *(unsigned int*)&an);
 	 
 	 }
 
