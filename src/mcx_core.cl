@@ -205,14 +205,16 @@ inline void atomicadd(volatile __global float *source, const float operand) {
 }
 #endif
 
-void clearpath(__local float *p, __constant MCXParam gcfg[]){
+//void clearpath(__local float *p, __constant MCXParam gcfg[]){
+void clearpath(__local float *p, __global MCXParam gcfg[]){
       uint i;
       for(i=0;i<gcfg->maxmedia;i++)
       	   p[i]=0.f;
 }
 
 #ifdef MCX_SAVE_DETECTORS
-uint finddetector(float4 p0[],__constant float4 gdetpos[],__constant MCXParam gcfg[]){
+//uint finddetector(float4 p0[],__constant float4 gdetpos[],__constant MCXParam gcfg[]){
+uint finddetector(float4 p0[],__global float4 gdetpos[],__global MCXParam gcfg[]){
       uint i;
       for(i=0;i<gcfg->detnum;i++){
       	if((gdetpos[i].x-p0[0].x)*(gdetpos[i].x-p0[0].x)+
@@ -224,8 +226,10 @@ uint finddetector(float4 p0[],__constant float4 gdetpos[],__constant MCXParam gc
       return 0;
 }
 
+//void savedetphoton(__global float n_det[],__global uint *detectedphoton,float nscat,
+//                   __local float *ppath,float4 p0[],__constant float4 gdetpos[],__constant MCXParam gcfg[]){
 void savedetphoton(__global float n_det[],__global uint *detectedphoton,float nscat,
-                   __local float *ppath,float4 p0[],__constant float4 gdetpos[],__constant MCXParam gcfg[]){
+                   __local float *ppath,float4 p0[],__global float4 gdetpos[],__global MCXParam gcfg[]){
       uint detid;
       detid=finddetector(p0,gdetpos,gcfg);
       if(detid){
@@ -292,11 +296,16 @@ void rotatevector(float4 v[], float stheta, float ctheta, float sphi, float cphi
       GPUDEBUG(((__constant char*)"new dir: %10.5e %10.5e %10.5e\n",v[0].x,v[0].y,v[0].z));
 }
 
+//int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
+//           uint *mediaid,float *w0,uchar isdet, __local float ppath[],float *energyloss,float *energylaunched,
+//	   __global float n_det[],__global uint *dpnum, __constant float4 gproperty[],
+//	   __constant float4 gdetpos[],__constant MCXParam gcfg[],int threadid, int threadphoton, int oddphotons){
+//      
+
 int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
            uint *mediaid,float *w0,uchar isdet, __local float ppath[],float *energyloss,float *energylaunched,
-	   __global float n_det[],__global uint *dpnum, __constant float4 gproperty[],
-	   __constant float4 gdetpos[],__constant MCXParam gcfg[],int threadid, int threadphoton, int oddphotons){
-      
+	   __global float n_det[],__global uint *dpnum, __global float4 gproperty[],
+	   __global float4 gdetpos[],__global MCXParam gcfg[],int threadid, int threadphoton, int oddphotons){
       if(p[0].w>=0.f){
           *energyloss+=p[0].w;  // sum all the remaining energy
 #ifdef MCX_SAVE_DETECTORS
@@ -326,11 +335,23 @@ int launchnewphoton(float4 p[],float4 v[],float4 f[],float4 prop[],uint *idx1d,
 /*
    this is the core Monte Carlo simulation kernel, please see Fig. 1 in Fang2009
 */
-__kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const uchar media[],
-     __global float field[], __global float genergy[], __global uint n_seed[],
-     __global float n_det[],__constant float4 gproperty[],
-     __constant float4 gdetpos[], __global uint stopsign[1],__global uint detectedphoton[1],
-     __local float *sharedmem, __constant MCXParam gcfg[]){
+__kernel void mcx_main_loop(const int nphoton, const int ophoton,
+		__global const uchar media[],
+     __global float field[], 
+	 __global float genergy[], 
+	 __global uint n_seed[],
+     __global float n_det[],
+	 //__constant float4 gproperty[],
+	 __global float4 gproperty[],
+     //__constant float4 gdetpos[], 
+     __global float4 gdetpos[], 
+	 __global uint stopsign[1],
+	 __global uint detectedphoton[1],
+     __local float *sharedmem, 
+	 //__constant MCXParam gcfg[]
+	 __global MCXParam gcfg[]
+	 )
+{
 
      int idx= get_global_id(0);
 

@@ -313,8 +313,10 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
         srand(time(0));
 
      OCL_ASSERT(((gmedia=clCreateBuffer(mcxcontext,RO_MEM, sizeof(cl_uchar)*(dimxyz),media,&status),status)));
-     OCL_ASSERT(((gproperty=clCreateBuffer(mcxcontext,RO_MEM, cfg->medianum*sizeof(Medium),cfg->prop,&status),status)));
-     OCL_ASSERT(((gparam=clCreateBuffer(mcxcontext,RO_MEM, sizeof(MCXParam),&param,&status),status)));
+     //OCL_ASSERT(((gproperty=clCreateBuffer(mcxcontext,RO_MEM, cfg->medianum*sizeof(Medium),cfg->prop,&status),status)));
+     OCL_ASSERT(((gproperty=clCreateBuffer(mcxcontext,RW_MEM, cfg->medianum*sizeof(Medium),cfg->prop,&status),status)));
+     //OCL_ASSERT(((gparam=clCreateBuffer(mcxcontext,RO_MEM, sizeof(MCXParam),&param,&status),status)));
+     OCL_ASSERT(((gparam=clCreateBuffer(mcxcontext,RW_MEM, sizeof(MCXParam),&param,&status),status)));
 
      for(i=0;i<workdev;i++){
        for (j=0; j<cfg->nthread*RAND_SEED_LEN;j++)
@@ -325,7 +327,8 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
        OCL_ASSERT(((genergy[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*(cfg->nthread<<1),energy,&status),status)));
        OCL_ASSERT(((gstopsign[i]=clCreateBuffer(mcxcontext,RW_PTR, sizeof(cl_uint),&stopsign,&status),status)));
        OCL_ASSERT(((gdetected[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(cl_uint),&detected,&status),status)));
-       OCL_ASSERT(((gdetpos[i]=clCreateBuffer(mcxcontext,RO_MEM, cfg->detnum*sizeof(float4),cfg->detpos,&status),status)));
+       //OCL_ASSERT(((gdetpos[i]=clCreateBuffer(mcxcontext,RO_MEM, cfg->detnum*sizeof(float4),cfg->detpos,&status),status)));
+       OCL_ASSERT(((gdetpos[i]=clCreateBuffer(mcxcontext,RW_MEM, cfg->detnum*sizeof(float4),cfg->detpos,&status),status)));
      }
 
      fprintf(cfg->flog,"\
