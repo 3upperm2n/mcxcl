@@ -362,8 +362,10 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 
      if(cfg->issavedet)
          sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
-     if(cfg->isreflect)
-         sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+
+     //if(cfg->isreflect)
+     //    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+
      sprintf(opt+strlen(opt)," %s",cfg->compileropt);
 
      status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
