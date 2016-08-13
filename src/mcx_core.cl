@@ -46,7 +46,7 @@
 #define MED_MASK           0x7F
 #define NULL               0
 
-#define MCX_DO_REFLECTION 0
+//#define MCX_DO_REFLECTION 0
 
 typedef struct KernelParams {
 	float4 ps,c0;
@@ -480,7 +480,7 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 			continue;
 		}
 
-#if MCX_DO_REFLECTION
+#ifdef MCX_DO_REFLECTION
 		//if hit the boundary, exceed the max time window or exit the domain, rebound or launch a new one
 		if(gcfg->doreflect && n1!=gproperty[mediaid].w){
 			float Rtotal=1.f;
