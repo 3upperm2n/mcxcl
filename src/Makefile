@@ -15,7 +15,7 @@ ifneq "$(wildcard $(CUDA_DIR) )" ""
   CUDAROOT?=$(CUDA_DIR)
 endif
 
-AMDAPPSDKROOT ?=/opt/AMDAPPSDK-2.9-1
+AMDAPPSDKROOT ?=/opt/AMDAPPSDK-3.0
 LIBOPENCLDIR ?=$(AMDAPPSDKROOT)/lib/x86_64
 
 CUCCOPT=-I/usr/local/cuda/include #-m32 -msse2 -Wfloat-equal -Wpointer-arith  -DATI_OS_LINUX -g3 -ffor-scope 
