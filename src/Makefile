@@ -9,7 +9,7 @@ CCC=g++
 BINARY=mcxcl
 OUTPUT_DIR=../bin
 INCLUDEDIRS=#-I/home/fangq/Download/ati-stream-sdk-v2.0-lnx32/include
-AMDAPPSDKROOT ?=/opt/AMDAPPSDK-2.9-1
+AMDAPPSDKROOT ?=/opt/AMDAPPSDK-3.0
 LIBOPENCLDIR ?=$(AMDAPPSDKROOT)/lib/x86_64
 LINKOPT=-g -L$(LIBOPENCLDIR) -lOpenCL
 
