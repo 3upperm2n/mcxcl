@@ -320,6 +320,9 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 	mcgrid[0]=cfg->nthread;
 	mcblock[0]=cfg->nblocksize;
 
+	std::cout << "running total threads: " << mcgrid[0] << std::endl;
+
+
 	Pseed=(cl_uint*)malloc(sizeof(cl_uint)*cfg->nthread*RAND_SEED_LEN);
 	energy=(cl_float*)calloc(sizeof(cl_float),cfg->nthread*3);
 	Pdet=(float*)calloc(cfg->maxdetphoton,sizeof(float)*(cfg->medianum+1));
