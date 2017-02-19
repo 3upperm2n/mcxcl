@@ -399,11 +399,14 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 
      OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
-     sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+     //sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+
      if(cfg->issavedet)
          sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
-     if(cfg->isreflect)
-         sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+
+     //if(cfg->isreflect)
+     //    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+
      sprintf(opt+strlen(opt)," %s",cfg->compileropt);
 
      status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
