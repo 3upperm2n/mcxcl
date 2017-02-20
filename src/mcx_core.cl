@@ -470,7 +470,7 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 			continue;
 		}
 
-//#ifdef MCX_DO_REFLECTION
+#ifdef MCX_DO_REFLECTION
 		//if hit the boundary, exceed the max time window or exit the domain, rebound or launch a new one
 		if(gcfg->doreflect && n1!=gproperty[mediaid].w){
 			float Rtotal=1.f;
@@ -530,7 +530,7 @@ __kernel void mcx_main_loop(const int nphoton, const int ophoton,__global const 
 				n1=prop.w;
 			}
 		}
-//#endif
+#endif
 	}
 	// accumweight saves the total absorbed energy in the sphere r<sradius.
 	// in non-atomic mode, accumweight is more accurate than saving to the grid

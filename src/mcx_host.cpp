@@ -404,8 +404,11 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 	if(cfg->issavedet)
 		sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
 
-	//if(cfg->isreflect)
-	//    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+	if(cfg->isreflect)
+	    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+
+	if(cfg->isreflect)
+		printf("\n=> running reflection!\n");
 
 	sprintf(opt+strlen(opt)," %s",cfg->compileropt);
 
@@ -431,7 +434,7 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
 		// leiming: opt2 persistent block
 		// vgpr 58, sgpr 82: assume vgpr is the corresponding registers in cuda term
-		printf("=>autothread %lu, autoblock %lu\n",gpu[i].autothread, gpu[i].autoblock);
+		//printf("=>autothread %lu, autoblock %lu\n",gpu[i].autothread, gpu[i].autoblock);
 
 		cl_int threadphoton, oddphotons;
 
