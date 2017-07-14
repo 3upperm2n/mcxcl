@@ -28,6 +28,8 @@
 extern cl_event kernelevent;
 
 
+#define MCXCLBIN "mcxcl.bin"
+
 char *print_cl_errstring(cl_int err) {
     switch (err) {
         case CL_SUCCESS:                          return strdup("Success!");
@@ -225,6 +227,10 @@ cl_platform_id mcx_list_gpu(Config *cfg,unsigned int *activedev,cl_device_id *ac
 */
 void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
+	unsigned char *binary;
+	size_t binary_size;
+	File *f;
+
      cl_uint i,j,iter;
      cl_float  minstep=MIN(MIN(cfg->steps.x,cfg->steps.y),cfg->steps.z);
      cl_float t,twindow0,twindow1;
@@ -397,29 +403,54 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 
      fprintf(cfg->flog,"init complete : %d ms\n",GetTimeMillis()-tic);
 
-     OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
-     sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
-     if(cfg->issavedet)
-         sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
-     if(cfg->isreflect)
-         sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
-     sprintf(opt+strlen(opt)," %s",cfg->compileropt);
+	// check whether mcxcl.bin exist or not
 
-     status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
-     
-     if(status!=CL_SUCCESS){
-	 size_t len;
-	 char *msg;
-	 // get the details on the error, and store it in buffer
-	 clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,0,NULL,&len); 
-	 msg=new char[len];
-	 clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,len,msg,NULL); 
-	 fprintf(cfg->flog,"Kernel build error:\n%s\n", msg);
-	 mcx_error(-(int)status,(char*)("Error: Failed to build program executable!"),__FILE__,__LINE__);
-	 delete msg;
-     }
-     fprintf(cfg->flog,"build program complete : %d ms\n",GetTimeMillis()-tic);
+	if (!fopen(MCXCLBIN, "r")) 
+	{
+		 OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
+
+		// build program
+		 sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+		 if(cfg->issavedet)
+			 sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
+		 if(cfg->isreflect)
+			 sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+		 sprintf(opt+strlen(opt)," %s",cfg->compileropt);
+
+		 status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
+		 
+		 if(status!=CL_SUCCESS){
+		 size_t len;
+		 char *msg;
+		 // get the details on the error, and store it in buffer
+		 clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,0,NULL,&len); 
+		 msg=new char[len];
+		 clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,len,msg,NULL); 
+		 fprintf(cfg->flog,"Kernel build error:\n%s\n", msg);
+		 mcx_error(-(int)status,(char*)("Error: Failed to build program executable!"),__FILE__,__LINE__);
+		 delete msg;
+		 }
+		 fprintf(cfg->flog,"build program complete : %d ms\n",GetTimeMillis()-tic);
+
+
+		// same the program to binaries
+		clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &binary_size, NULL);
+		binary = malloc(binary_size);
+		clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARIES, binary_size, &binary, NULL);
+		f = fopen(MCXCLBIN, "wb");
+		fwrite(binary, sizeof(char), binary_size, f);
+		fclose(f);
+	}
+	else
+	{   // mcxcl.bin exists
+		OCL_ASSERT(((mcxprogram=clCreateProgramWithBinary(mcxcontext, workdev, devices, binary_size, &binary, NULL, &status),status)));	
+	
+	}
+
+
+
+
 
      mcxkernel=(cl_kernel*)malloc(workdev*sizeof(cl_kernel));
 
