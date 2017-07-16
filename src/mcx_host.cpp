@@ -227,7 +227,6 @@ cl_platform_id mcx_list_gpu(Config *cfg,unsigned int *activedev,cl_device_id *ac
 */
 void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
-	FILE *fptr;
 
      cl_uint i,j,iter;
      cl_float  minstep=MIN(MIN(cfg->steps.x,cfg->steps.y),cfg->steps.z);
@@ -403,10 +402,15 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 
 
 	// check whether mcxcl.bin exist or not
+	//unsigned char *binary = NULL; 
+	//size_t binary_size;
+
+	size_t *binary_size = NULL;
+	unsigned char **binary = NULL; 
 
 	if (fopen(MCXBIN, "r") == NULL) 
 	{
-		//printf("No binaries!\n");	
+		printf("[No binaries!]\n");	
 
 		 OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
@@ -435,40 +439,129 @@ $MCXCL$Rev::    $ Last Commit $Date::                     $ by $Author:: fangq$\
 
 		//-------------------------------------------------------------------------------------------------------
 
-		// find out the program size for each device
-		size_t *binarysize = (size_t*) malloc(workdev);
-		clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARY_SIZES, sizeof(size_t)*workdev, &binarysize, NULL);
+		 printf("workdev : %d\n", workdev);
 
-		// allocate binaries for each device
-		unsigned char **binary = (unsigned char**) malloc(workdev * sizeof(unsigned char*));
+		 // (1) query which device
+		 cl_uint my_devnum= 0;
+		 clGetProgramInfo(mcxprogram, CL_PROGRAM_NUM_DEVICES,sizeof(cl_uint), &my_devnum, NULL);
+		 printf("my_devnum: %d\n", my_devnum);
+
+		 // (2) query dev name
+		 cl_device_id *my_devlist = new cl_device_id[my_devnum];
+		 clGetProgramInfo(mcxprogram, CL_PROGRAM_DEVICES, sizeof(cl_device_id) * my_devnum, my_devlist, NULL);
+		 for(i=0;i<my_devnum;i++) {
+			// print device name
+			size_t valueSize;
+			char* value;
+			clGetDeviceInfo(my_devlist[i], CL_DEVICE_NAME, 0, NULL, &valueSize);
+            value = (char*) malloc(valueSize);
+            clGetDeviceInfo(my_devlist[i], CL_DEVICE_NAME, valueSize, value, NULL);
+            printf("dev %d : %s\n", i, value);
+            free(value);
+		 }
+
+		 if(my_devlist) delete [] my_devlist;
+
+		 // (3) find out the program size for each device
+		binary_size = (size_t*) malloc(workdev);
+		clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARY_SIZES, sizeof(size_t) * workdev, binary_size, NULL);
 		for(i=0;i<workdev;i++) {
-			binary[i] = (unsigned char*)malloc(binarysize[i]);
+			printf("=> [dev:%d] binary size : %ld\n", i, binary_size[i]);
 		}
-		
-		// get the program binary for each device
-		clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARIES, sizeof(unsigned char*) * workdev, binary, NULL);
 
-		// store binary for each device
+		//
+		//clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &binary_size, NULL);
+		//printf("binary size : %ld\n", binary_size);
+
+		//
+		// allocate binaries for each device
+		//
+		binary = (unsigned char**) malloc(workdev * sizeof(unsigned char*));
+		for(i=0;i<workdev;i++) {
+			binary[i] = (unsigned char*)malloc(binary_size[i]);
+		}
+
+		//binary = (unsigned char*) malloc(binary_size);
+		
+		// [get the program binary for each device]
+		clGetProgramInfo(mcxprogram, CL_PROGRAM_BINARIES, sizeof(unsigned char*) * workdev, &binary, NULL);
+
+		// [output]
+		FILE *fptr;
+		//fptr = fopen(MCXBIN, "wb");	
+		//fwrite(binary, 1, binary_size, fptr);
+		//fclose(fptr);
+
+		//
+		// store binary for one device
+		//
 		for(i=0;i<workdev;i++) {
 			fptr = fopen(MCXBIN, "wb");	
-			fwrite(binary[i], 1, binarysize[i], fptr);
+			fwrite(binary[i], 1, binary_size[i], fptr);
 			fclose(fptr);
+			break;
 		}
+
 	}
 	else
 	{
-		//printf("Binaries Found!\n");	
+		//printf("[Binaries Found!]\n");
 
-		// create program from binary
+		FILE *fptr;
 		fptr = fopen(MCXBIN, "rb");
-		
+		if (fptr == NULL) printf("Something went wrong! file :%s, line : %d.\n", __FILE__, __LINE__);	
+
+		// 1. Determine the size of the binary
+		fseek(fptr, 0, SEEK_END);
+		size_t binsize = ftell(fptr);
+		rewind(fptr);
+
+		// 2. read binary
+		unsigned char* progbin = (unsigned char*) malloc(binsize);
+		fread(progbin, 1, binsize, fptr);
+		fclose(fptr);
+
+		// 3. create program
+		mcxprogram=clCreateProgramWithBinary(mcxcontext, 1, &devices[0], &binsize,  (const unsigned char**) &progbin, NULL, &status);
+
+		// 4. find out the target dev id
 
 
+		// build program
+		 sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
+		 if(cfg->issavedet)
+			 sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
+		 if(cfg->isreflect)
+			 sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+		 sprintf(opt+strlen(opt)," %s",cfg->compileropt);
 
+		 status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
+		 
+		 if(status!=CL_SUCCESS){
+		 size_t len;
+		 char *msg;
+		 // get the details on the error, and store it in buffer
+		 clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,0,NULL,&len); 
+		 msg=new char[len];
+		 clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,len,msg,NULL); 
+		 fprintf(cfg->flog,"Kernel build error:\n%s\n", msg);
+		 mcx_error(-(int)status,(char*)("Error: Failed to build program executable!"),__FILE__,__LINE__);
+		 delete msg;
+		 }
+		 fprintf(cfg->flog,"build program complete : %d ms\n",GetTimeMillis()-tic);
 	}
 
 
+
+
+
+
 		
+		/*
+		free(binarysize);
+		for(i=0;i<workdev;i++) free(binary[i]);
+		free(binary);
+		*/
 
 
      mcxkernel=(cl_kernel*)malloc(workdev*sizeof(cl_kernel));
@@ -680,11 +773,8 @@ is more than what your have specified (%d), please use the -H option to specify 
      free(mcxkernel);
 
 
-	free(binarysize);
-	for(i=0;i<workdev;i++) {
-		free(binary[i]);
-	}
-	free(binary);
+	free(binary_size);
+
 
      free(waittoread);
 
