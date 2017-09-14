@@ -396,8 +396,11 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
      //if(cfg->issavedet)
      //    sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
      //if(cfg->isreflect)
+     //if(cfg->isreflect)
      //    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
      //sprintf(opt+strlen(opt)," %s",cfg->compileropt);
+
+     //printf("reflect : %d",cfg->isreflect);
 
      status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
      
