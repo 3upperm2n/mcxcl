@@ -1330,7 +1330,7 @@ usage: %s <param1> <param2> ...\n\
 where possible parameters include (the first item in [] is the default value)\n\
  -i 	        (--interactive) interactive mode\n\
  -f config      (--input)	read config from a file\n\
- -A [0|int]     (--autopilot)   auto thread config:1 dedicated GPU;2 non-dedica.\n\
+ -A [0|int]     (--autopilot)   auto thread config:1 dedicated GPU;2 non-dedica; 3 persistent.\n\
  -t [16384|int] (--thread)	total thread number\n\
  -T [64|int]    (--blocksize)	thread number per block\n\
  -n [0|int]     (--photon)	total photon number\n\
