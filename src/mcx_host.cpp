@@ -429,11 +429,11 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 	sprintf(opt,"-cl-mad-enable -cl-fast-relaxed-math %s",cfg->compileropt);
 	//sprintf(opt," %s",cfg->compileropt);
 
-	//if(cfg->issavedet)
-	//    sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
-	//if(cfg->isreflect)
-	//    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
-	//sprintf(opt+strlen(opt)," %s",cfg->compileropt);
+	if(cfg->issavedet)
+	    sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
+	if(cfg->isreflect)
+	    sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+	sprintf(opt+strlen(opt)," %s",cfg->compileropt);
 
 	status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
 
