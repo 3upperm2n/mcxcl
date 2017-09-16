@@ -1,0 +1,26 @@
+#!/bin/bash
+
+
+echo ""
+echo "ben1"
+echo ""
+./run_benchmark1.sh -G 010
+./run_benchmark1.sh -G 010
+./run_benchmark1.sh -G 010
+
+
+echo ""
+echo "ben2"
+echo ""
+./run_benchmark2.sh -G 010
+./run_benchmark2.sh -G 010
+./run_benchmark2.sh -G 010
+
+
+echo ""
+echo "ben2a"
+echo ""
+./run_benchmark2a.sh -G 010
+./run_benchmark2a.sh -G 010
+./run_benchmark2a.sh -G 010
+
