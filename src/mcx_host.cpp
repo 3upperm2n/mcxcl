@@ -515,8 +515,9 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 				OCL_ASSERT((clFlush(mcxqueue[devid])));
 			}
 			//clWaitForEvents(workdev,waittoread);
-			for(devid=0;devid<workdev;devid++)
+			for(devid=0;devid<workdev;devid++) {
 				OCL_ASSERT((clFinish(mcxqueue[devid])));
+			}
 
 			tic1=GetTimeMillis();
 			toc+=tic1-tic0;
