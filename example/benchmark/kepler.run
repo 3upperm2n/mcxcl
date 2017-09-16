@@ -1,0 +1,42 @@
+#!/bin/bash
+
+devid=10
+
+echo "k40"
+echo "ben1"
+echo ""
+./run_benchmark1.sh -G $devid 
+
+
+echo ""
+echo "ben2"
+echo ""
+./run_benchmark2.sh -G $devid 
+
+
+echo ""
+echo "ben2a"
+echo ""
+./run_benchmark2a.sh -G $devid 
+
+
+
+devid=01
+
+echo "k20"
+echo "ben1"
+echo ""
+./run_benchmark1.sh -G $devid 
+
+
+echo ""
+echo "ben2"
+echo ""
+./run_benchmark2.sh -G $devid 
+
+
+echo ""
+echo "ben2a"
+echo ""
+./run_benchmark2a.sh -G $devid 
+
