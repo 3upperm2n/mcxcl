@@ -69,13 +69,13 @@ makedirs:
 	@if test ! -d $(OUTPUT_DIR); then $(MKDIR) $(OUTPUT_DIR); fi
 
 $(OUTPUT_DIR)/$(BINARY): makedirs $(OBJS)
-	$(AR) $(OBJS) $(LINKOPT) -o $(OUTPUT_DIR)/$(BINARY)
+	$(AR) $(OBJS) $(LINKOPT) -o $(OUTPUT_DIR)/$(BINARY) -lpthread
 
 %$(OBJSUFFIX): %.c
 	$(CC) $(INCLUDEDIRS) $(CCOPT) -c -o $@  $<
 
 %$(OBJSUFFIX): %.cpp
-	$(CXX) $(INCLUDEDIRS) $(CPPOPT) -c $(CUCCOPT) -o $@  $<
+	$(CXX) $(INCLUDEDIRS) $(CPPOPT) -c $(CUCCOPT) -o $@  $< -lpthread
 
 intelcpu:
 	$(IOCC) -cmd=build -input=mcx_core.cl -device=cpu -spir64=mcx_core_intelcpu.bc -bo="-cl-std=CL1.2"
