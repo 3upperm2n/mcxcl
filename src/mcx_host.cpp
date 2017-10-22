@@ -27,6 +27,9 @@
 
 extern cl_event kernelevent;
 
+//// workgroup
+//#define MAXBLKS 8192 
+//int photons_per_blk[MAX_DEVICE][MAXBLKS] = {{0}};
 
 char *print_cl_errstring(cl_int err) {
     switch (err) {
@@ -260,6 +263,10 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
      cl_uint  *media=(cl_uint *)(cfg->vol);
      cl_float  *field;
 
+     // workgroup
+     //int* ptr_photons_per_blk = photons_per_blk[0];
+     //cl_mem *g_photons_per_blk;
+
      cl_uint   *Pseed;
      float  *Pdet;
      char opt[MAX_PATH_LENGTH]={'\0'};
@@ -301,6 +308,9 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
      gdetected=(cl_mem *)malloc(workdev*sizeof(cl_mem));
      gdetpos=(cl_mem *)malloc(workdev*sizeof(cl_mem));
 
+     // workgroup
+     //g_photons_per_blk = (cl_mem *)malloc(workdev*sizeof(cl_mem));
+
      /* The block is to move the declaration of prop closer to its use */
      cl_command_queue_properties prop = CL_QUEUE_PROFILING_ENABLE;
 
@@ -330,6 +340,13 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
          }
 	 if(gpu[i].autothread%gpu[i].autoblock)
      	    gpu[i].autothread=(gpu[i].autothread/gpu[i].autoblock)*gpu[i].autoblock;
+
+	 // compute blocks for each gpu
+	 gpu[i].blocks = (gpu[i].autothread + gpu[i].autoblock - 1 ) / gpu[i].autoblock;
+	 //if(gpu[i].blocks > MAXBLKS){
+	 //    fprintf(stderr, "GPU %d (%d blks) reaches the limit (%d blks).\n", 
+	 //            i, gpu[i].blocks, MAXBLKS);
+	 //}
      }
      fullload=0.f;
      for(i=0;i<workdev;i++)
@@ -340,6 +357,8 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
      	    cfg->workload[i]=gpu[i].core;
 	fullload=totalcucore;
      }
+
+
 
      if(cfg->respin>1){
          field=(cl_float *)calloc(sizeof(cl_float)*dimxyz,cfg->maxgate*2); //the second half will be used to accumul$
@@ -383,6 +402,28 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
        OCL_ASSERT(((gstopsign[i]=clCreateBuffer(mcxcontext,RW_PTR, sizeof(cl_uint),&stopsign,&status),status)));
        OCL_ASSERT(((gdetected[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(cl_uint),&detected,&status),status)));
        OCL_ASSERT(((gdetpos[i]=clCreateBuffer(mcxcontext,RO_MEM, cfg->detnum*sizeof(float4),cfg->detpos,&status),status)));
+
+/*
+       //-------------------------------
+       // pre-compute photons per thread
+       //-------------------------------
+       int threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[i].autothread*cfg->respin));
+       int oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[i].autothread);
+       int blksize = gpu[i].autoblock;
+
+       for(size_t tid=0; tid<gpu[i].autothread; tid++) {
+	   int blkid = tid / blksize;
+	   photons_per_blk[i][blkid] +=  threadphoton + ((int)tid < oddphotons);
+       }
+
+       //for(unsigned int k=0; k<gpu[i].blocks; k++) {
+       //    printf("block \t%d : photon %d\n", k, photons_per_blk[i][k]);
+       //}
+
+       // workgroup : copy data to device 
+       OCL_ASSERT(((g_photons_per_blk[i]=clCreateBuffer(mcxcontext,RO_MEM, sizeof(int) * MAXBLKS,
+			   (void *)&ptr_photons_per_blk[i * MAXBLKS],&status),status)));
+*/
        free(Pseed);
        free(energy);
      }
@@ -435,10 +476,18 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
          threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[i].autothread*cfg->respin));
          oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[i].autothread);
+
+
+	 // workgroup
+	 int running_threads = (int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin));
+         int phn_per_blk = (running_threads + gpu[i].blocks - 1) / gpu[i].blocks;
+
+
          fprintf(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d repetition=%d\n",i, gpu[i].id, gpu[i].name,threadphoton,oddphotons,
                cfg->nphoton*cfg->workload[i]/fullload,(int)gpu[i].autothread,cfg->respin);
 
 	 OCL_ASSERT(((mcxkernel[i] = clCreateKernel(mcxprogram, "mcx_main_loop", &status),status)));
+
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 0, sizeof(cl_uint),(void*)&threadphoton)));
          OCL_ASSERT((clSetKernelArg(mcxkernel[i], 1, sizeof(cl_uint),(void*)&oddphotons)));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 2, sizeof(cl_mem), (void*)&gmedia)));
@@ -451,6 +500,10 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 9, sizeof(cl_mem), (void*)(gstopsign+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],10, sizeof(cl_mem), (void*)(gdetected+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],11, cfg->issavedet? sizeof(cl_float)*cfg->nblocksize*param.maxmedia : 1, NULL)));
+
+	 // workgroup
+	 //OCL_ASSERT((clSetKernelArg(mcxkernel[i],13, sizeof(cl_mem), (void*)(g_photons_per_blk+i))));
+	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],13, sizeof(cl_uint), (void*)&phn_per_blk)));
      }
      fprintf(cfg->flog,"set kernel arguments complete : %d ms\n",GetTimeMillis()-tic);
 
@@ -626,6 +679,10 @@ is more than what your have specified (%d), please use the -H option to specify 
          clReleaseMemObject(gstopsign[i]);
          clReleaseMemObject(gdetected[i]);
          clReleaseMemObject(gdetpos[i]);
+
+	 // workgroup
+         //clReleaseMemObject(g_photons_per_blk[i]);
+
          clReleaseKernel(mcxkernel[i]);
      }
      free(gfield);
@@ -634,6 +691,10 @@ is more than what your have specified (%d), please use the -H option to specify 
      free(gstopsign);
      free(gdetected);
      free(gdetpos);
+
+     // workgroup
+     //free(g_photons_per_blk);
+
      free(mcxkernel);
 
      free(waittoread);
