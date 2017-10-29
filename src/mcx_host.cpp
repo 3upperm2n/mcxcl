@@ -346,6 +346,7 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
          }
 	 if(gpu[i].autothread%gpu[i].autoblock)
      	    gpu[i].autothread=(gpu[i].autothread/gpu[i].autoblock)*gpu[i].autoblock;
+	 gpu[i].blocks = (gpu[i].autothread + gpu[i].autoblock - 1 ) / gpu[i].autoblock;
      }
      fullload=0.f;
      for(i=0;i<workdev;i++)
@@ -457,6 +458,8 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
          threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[i].autothread*cfg->respin));
          oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[i].autothread);
+	 int running_threads = (int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin));
+	 int phn_per_blk = (running_threads + gpu[i].blocks - 1) / gpu[i].blocks; 
          fprintf(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",i, gpu[i].id, gpu[i].name,threadphoton,oddphotons,
                cfg->nphoton*cfg->workload[i]/fullload,(int)gpu[i].autothread,(int)gpu[i].autoblock,cfg->respin);
 
@@ -473,6 +476,7 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 9, sizeof(cl_mem), (void*)(gstopsign+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],10, sizeof(cl_mem), (void*)(gdetected+i))));
 	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],11, cfg->issavedet? sizeof(cl_float)*cfg->nblocksize*param.maxmedia : 1, NULL)));
+	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],13, sizeof(cl_int), (void*)&phn_per_blk)));
      }
      fprintf(cfg->flog,"set kernel arguments complete : %d ms\n",GetTimeMillis()-tic);
 
