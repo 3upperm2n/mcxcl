@@ -423,11 +423,36 @@ void mcx_run_simulation(Config *cfg,float *fluence,float *totalenergy){
 
      OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
 
+
      sprintf(opt,"-cl-mad-enable %s",cfg->compileropt);
      if(cfg->issavedet)
          sprintf(opt+strlen(opt)," -D MCX_SAVE_DETECTORS");
      if(cfg->isreflect)
          sprintf(opt+strlen(opt)," -D MCX_DO_REFLECTION");
+
+     /*
+     time_t myt;                                                                
+     srand((unsigned) time(&myt));                                              
+     int someRandNum = rand() % 100 + 200; // 200 to 299                        
+     sprintf(opt+strlen(opt)," -cl-nv-maxrregcount=%d -cl-nv-verbose", someRandNum);
+
+     fprintf(cfg->flog,"Building kernel with option: %s\n",opt);                
+     status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);               
+     {                                                                          
+	 char *program_log;                                                     
+	 size_t log_size;                                                       
+	 status = clGetProgramBuildInfo(mcxprogram, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+	 program_log = (char*)malloc(log_size+1);                               
+	 status = clGetProgramBuildInfo(mcxprogram, devices[0], CL_PROGRAM_BUILD_LOG, log_size, program_log, NULL);
+	 program_log[log_size] = '\0';                                          
+	 fprintf(stderr, "%s\n", program_log);                                  
+     } 
+     */
+
+     //sprintf(opt+strlen(opt)," -cl-nv-maxrregcount=48");
+     //sprintf(opt+strlen(opt)," -cl-nv-maxrregcount=40");
+     //sprintf(opt+strlen(opt)," -cl-nv-maxrregcount=48 -cl-nv-opt-level=2");
+     //sprintf(opt+strlen(opt)," -cl-nv-opt-level=2");
 
      fprintf(cfg->flog,"Building kernel with option: %s\n",opt);
      status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
